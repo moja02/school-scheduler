@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الجدولة الذكي</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Firebase SDK Compat Mode -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+</head>
+<body>
+    <div class="background-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <div class="dashboard-app-container">
+        <!-- الشريط الجانبي الأيمن الداكن (Sidebar) - مستوحى من التصميم المرفق -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-top-group">
+                <!-- شعار وهوية المنظومة -->
+                <div class="sidebar-brand">
+                    <div class="brand-logo-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="brand-text">
+                        <h2 class="brand-title">جدولة ذكية</h2>
+                        <span class="brand-subtitle">المنصة المدرسية السحابية</span>
+                    </div>
+                </div>
+
+                <!-- عنوان الأقسام -->
+                <div class="sidebar-nav-heading">الأقسام الرئيسية</div>
+
+                <!-- قائمة التبويبات الرئيسية (أزرار التنقل) -->
+                <nav class="sidebar-menu" id="main-scheduler-tabs">
+                    <button class="nav-btn tab-btn active" data-target="settings-tab">
+                        <span class="nav-icon"><i class="fas fa-sitemap"></i></span>
+                        <span class="nav-text">هيكلية المدرسة</span>
+                    </button>
+                    <button class="nav-btn tab-btn" data-target="grades-tab">
+                        <span class="nav-icon"><i class="fas fa-chalkboard"></i></span>
+                        <span class="nav-text">الفصول والشعب</span>
+                    </button>
+                    <button class="nav-btn tab-btn" data-target="subjects-tab">
+                        <span class="nav-icon"><i class="fas fa-book-open"></i></span>
+                        <span class="nav-text">إدارة المواد</span>
+                    </button>
+                    <button class="nav-btn tab-btn" data-target="sessions-tab">
+                        <span class="nav-icon"><i class="fas fa-clock"></i></span>
+                        <span class="nav-text">حصص المواد</span>
+                    </button>
+                    <button class="nav-btn tab-btn" data-target="teachers-tab">
+                        <span class="nav-icon"><i class="fas fa-user-tie"></i></span>
+                        <span class="nav-text">المعلمون</span>
+                    </button>
+                    <button class="nav-btn tab-btn" data-target="reqs-tab">
+                        <span class="nav-icon"><i class="fas fa-tasks"></i></span>
+                        <span class="nav-text">الإسناد وتوزيع الحصص</span>
+                    </button>
+                    <button class="nav-btn tab-btn" data-target="teacher-tasks-tab">
+                        <span class="nav-icon"><i class="fas fa-clipboard-check"></i></span>
+                        <span class="nav-text">مهام وجداول المعلمين</span>
+                    </button>
+                    <button class="nav-btn tab-btn generate-btn" data-target="schedule-tab">
+                        <span class="nav-icon"><i class="fas fa-magic"></i></span>
+                        <span class="nav-text">الجدول النهائي الذكي</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- بطاقة حساب المستخدم في أسفل الـ Sidebar (مطابقة للتصميم) -->
+            <div class="sidebar-user-section">
+                <div class="sidebar-nav-heading">حساب المستخدم</div>
+                <div class="user-profile-badge">
+                    <div class="user-avatar" id="sidebar-user-avatar">
+                        <i class="fas fa-school"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-display-name" id="current-school-name">مدرستي</span>
+                        <span class="user-display-role" id="current-school-role">لوحة التحكم</span>
+                    </div>
+                    <button class="btn-sidebar-logout" onclick="handleLogout()" title="تسجيل الخروج">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- مساحة العمل الرئيسية في الوسط واليسار -->
+        <main class="dashboard-main-content">
+            <!-- شريط العنوان والتحكم العلوي -->
+            <header class="main-topbar">
+                <div class="topbar-info">
+                    <h1 id="page-main-title">هيكلية المدرسة</h1>
+                    <p id="page-main-desc">قم بضبط المراحل والفصول والمعلمين بسهولة</p>
+                </div>
+
+                <div class="topbar-actions">
+                    <!-- تسجيل الدخول / أزرار الأدمن -->
+                    <div id="user-bar">
+                        <div id="logged-out-view">
+                            <button class="btn-action-dark" onclick="openAuthModal('login')">
+                                <i class="fas fa-sign-in-alt"></i> تسجيل الدخول للمنظومة
+                            </button>
+                        </div>
+                        <div id="logged-in-view" style="display: none; align-items: center; gap: 10px;">
+                            <div id="admin-switch-buttons" style="display: none; gap: 8px;">
+                                <button id="nav-btn-admin" class="btn-action-purple" onclick="switchMainView('admin')">
+                                    <i class="fas fa-user-shield"></i> لوحة الإدارة العامة
+                                </button>
+                                <button id="nav-btn-scheduler" class="btn-action-dark" onclick="switchMainView('scheduler')">
+                                    <i class="fas fa-calendar-alt"></i> لوحة الجدولة الذكية
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- شعار المدرسة المخصص -->
+                    <div id="system-logo-wrapper" style="display: flex; align-items: center;">
+                        <img id="system-logo-img" src="" alt="شعار المدرسة" style="display: none; max-height: 52px; max-width: 140px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8e5; background: #fff; padding: 2px;">
+                    </div>
+                </div>
+            </header>
+
+            <!-- قسم لوحة الإدارة العامة الكاملة (Super Admin View) -->
+            <div id="admin-page-section" style="display: none; margin-bottom: 25px;">
+                <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 16px; padding: 20px; margin-bottom: 25px;">
+                    <h2 style="margin-top: 0; color: #8b5cf6; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-user-shield"></i> لوحة الإدارة العامة وإدارة حسابات المدارس (Super Admin)
+                    </h2>
+                    <p style="color: #64748b; margin-bottom: 0;">من هنا يمكنك تأسيس حسابات المدارس الجديدة، والتحكم بكافة الاشتراكات وتفعيلها، أو الدخول كـ أدمن لإدارة بيانات أي مدرسة مباشرة.</p>
+                </div>
+
+                <!-- Create School Form Card -->
+                <div style="background: #ffffff; padding: 20px; border-radius: 16px; margin-bottom: 25px; border: 1px solid #e2e8e5; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                    <h3 style="margin-top: 0; margin-bottom: 15px; color: #059669;"><i class="fas fa-plus-circle"></i> تأسيس وإضافة حساب مدرسة جديد:</h3>
+                    <form id="admin-create-school-form-page" onsubmit="handleAdminCreateSchool(event)" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+                        <div>
+                            <label style="font-size: 0.9rem; display: block; margin-bottom: 6px; color: #334155; font-weight: bold;">اسم المدرسة:</label>
+                            <input type="text" id="admin-school-name-page" required placeholder="مدرسة الأمل الثانوية" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9rem; display: block; margin-bottom: 6px; color: #334155; font-weight: bold;">البريد الإلكتروني:</label>
+                            <input type="email" id="admin-school-email-page" required placeholder="school@test.com" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9rem; display: block; margin-bottom: 6px; color: #334155; font-weight: bold;">كلمة المرور الأولية:</label>
+                            <input type="password" id="admin-school-password-page" minlength="6" required placeholder="******" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a;">
+                        </div>
+                        <button type="submit" class="btn-primary" style="padding: 11px 24px; background: #059669; font-weight: bold; font-size: 0.95rem;"><i class="fas fa-check"></i> إنشاء الحساب</button>
+                    </form>
+                </div>
+
+                <!-- Registered Schools List -->
+                <div style="background: #ffffff; padding: 20px; border-radius: 16px; border: 1px solid #e2e8e5; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0; color: #0f2926;"><i class="fas fa-school"></i> قائمة المدارس المسجلة والتحكم بالصلاحيات:</h3>
+                        <button class="btn-secondary" onclick="loadAdminSchoolsList()"><i class="fas fa-sync"></i> تحديث القائمة</button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: right;">
+                            <thead>
+                                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8e5;">
+                                    <th style="padding: 12px; color: #475569;">اسم المدرسة</th>
+                                    <th style="padding: 12px; color: #475569;">البريد الإلكتروني</th>
+                                    <th style="padding: 12px; color: #475569;">تاريخ التأسيس</th>
+                                    <th style="padding: 12px; color: #475569;">حالة الاشتراك</th>
+                                    <th style="padding: 12px; text-align: center; color: #475569;">إجراءات التحكم والتحكم بالصلاحيات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-schools-list-page">
+                                <!-- JS Fills this -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- حاوية مساحة العمل الوظيفية -->
+            <div class="work-panels-container" id="scheduler-dashboard-wrapper">
+                <div class="tab-content active" id="settings-tab">
+            <div class="settings-header">
+                <h3>حدد المراحل الدراسية المتوفرة في مدرستك فقط. سيتم إخفاء باقي المراحل من الجداول والتقارير.</h3>
+            </div>
+            
+            <div class="structure-grid">
+                <!-- الابتدائية -->
+                <div class="structure-card primary-card">
+                    <div class="card-header">المرحلة الابتدائية</div>
+                    <div class="card-body" id="primary-switches"></div>
+                </div>
+
+                <!-- الإعدادية -->
+                <div class="structure-card prep-card">
+                    <div class="card-header">المرحلة الإعدادية</div>
+                    <div class="card-body" id="prep-switches"></div>
+                </div>
+
+                <!-- الثانوية -->
+                <div class="structure-card sec-card">
+                    <div class="card-header">المرحلة الثانوية</div>
+                    <div class="card-body" id="sec-switches"></div>
+                </div>
+            </div>
+            
+            <button class="btn-primary" style="width: 100%; margin-top: 20px;" onclick="saveStructure()">حفظ الهيكلية</button>
+        </div>
+
+        <div class="tab-content" id="grades-tab">
+            <div class="settings-header">
+                <h3>أضف الشعب (الفصول) لكل مرحلة دراسية قمت بتفعيلها.</h3>
+            </div>
+            <div class="table-container">
+                <table id="grades-table">
+                    <thead>
+                        <tr>
+                            <th>الصف</th>
+                            <th>الشعب (الفصول)</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-content" id="subjects-tab">
+            <div class="settings-header">
+                <h3>حدد المواد الدراسية لكل صف مفعل في مدرستك.</h3>
+            </div>
+            <div class="input-group">
+                <select id="subject-grade-select" onchange="loadGradeSubjects()">
+                    <option value="">-- اختر الصف الدراسي --</option>
+                </select>
+            </div>
+            
+            <div id="subjects-container" style="display:none;">
+                <div class="subjects-grid" id="subjects-grid">
+                    <!-- سيتم تعبئة المواد هنا -->
+                </div>
+                
+                <div class="input-group mt-2" style="max-width: 400px;">
+                    <input type="text" id="custom-subject-name" placeholder="إضافة مادة أخرى غير موجودة...">
+                    <button class="btn-primary" onclick="addCustomSubject()">إضافة المادة</button>
+                </div>
+                
+                <button class="btn-primary" style="width: 100%; margin-top: 20px;" onclick="confirmSaveSubjects()">حفظ تأكيد المواد</button>
+            </div>
+        </div>
+
+        <div class="tab-content" id="sessions-tab">
+            <div class="settings-header">
+                <h3>قم بتحديد عدد الحصص الأسبوعية لكل مادة.</h3>
+            </div>
+            
+            <div class="filter-bar">
+                <button class="btn-secondary" onclick="resetSessionsFilter()">
+                    <i class="fas fa-undo"></i> إعادة تعيين
+                </button>
+                <div class="input-group" style="margin: 0;">
+                    <label style="margin-left: 10px; color: white;">فلترة حسب الصف:</label>
+                    <select id="sessions-grade-filter" onchange="filterSubjectSessions()">
+                        <option value="">-- عرض مواد جميع الصفوف --</option>
+                    </select>
+                </div>
+            </div>
+            
+            <table id="sessions-table" class="mt-2">
+                <thead>
+                    <tr>
+                        <th>المادة الدراسية</th>
+                        <th style="width: 150px;">الحصص الأسبوعية</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- سيتم تعبئة الحصص هنا -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="tab-content" id="teachers-tab">
+            <div class="input-group">
+                <input type="text" id="teacher-name" placeholder="اسم المعلم...">
+                <button class="btn-primary" onclick="addTeacher()">إضافة معلم</button>
+            </div>
+            <div class="table-container">
+                <table id="teachers-table">
+                    <thead>
+                        <tr>
+                            <th>اسم المعلم</th>
+                            <th>عدد الحصص المحظورة</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-content" id="reqs-tab">
+            <div class="settings-header">
+                <h3>إسناد المهام للمعلمين (التحديد الذكي)</h3>
+            </div>
+            
+            <div class="glass-panel" style="padding: 20px; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 10px; color: var(--text-muted);">1. اختر المعلم:</label>
+                        <select id="req-batch-teacher" style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--glass-border); outline: none;"></select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 10px; color: var(--text-muted);">2. اختر المادة:</label>
+                        <select id="req-batch-subject" onchange="renderTargetClasses()" style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--glass-border); outline: none;">
+                            <option value="">-- اختر المادة أولاً --</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 10px; color: var(--text-muted);">3. حدد الفصول التي سيدرسها (اختر فصلاً أو أكثر):</label>
+                    <div id="req-batch-classes-container" class="subjects-grid">
+                        <p style="color: #64748b; grid-column: 1 / -1;">يرجى اختيار المادة لظهور الفصول المرتبطة بها...</p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 25px; text-align: left;">
+                    <button class="btn-primary" onclick="assignBatchRequirements()" style="font-size: 1.1rem; padding: 12px 25px;"><i class="fas fa-check"></i> حفظ وإسناد</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="teacher-tasks-tab">
+            <div class="filter-bar">
+                <div class="input-group" style="margin: 0; width: 100%;">
+                    <label style="margin-left: 10px; color: white;">عرض مهام المعلم:</label>
+                    <select id="tasks-teacher-filter" onchange="renderTeacherTasks()" style="flex: 1;">
+                        <option value="">-- اختر المعلم --</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="teacher-tasks-summary" style="display: none; margin-bottom: 20px;">
+                <div class="glass-panel" style="text-align: center; padding: 20px;">
+                    <h3 id="tt-name" style="margin-bottom: 10px; color: var(--primary); font-size: 1.5rem;">اسم المعلم</h3>
+                    <p style="font-size: 1.2rem;">إجمالي الحصص المسندة: <span id="tt-total-sessions" style="font-weight: bold; color: #feca57;">0</span> حصة أسبوعياً</p>
+                </div>
+                
+                <table class="mt-2" id="teacher-tasks-table">
+                    <thead>
+                        <tr>
+                            <th>الفصل</th>
+                            <th>المادة</th>
+                            <th>الحصص</th>
+                            <th>إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            
+            <div id="teacher-tasks-empty" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                <i class="fas fa-chalkboard-teacher" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                <p>يرجى اختيار معلم لعرض مهامه أو إسناد مهام جديدة له من شاشة "الإسناد".</p>
+            </div>
+        </div>
+
+        <div class="tab-content" id="schedule-tab">
+            <div class="center-action" style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button class="btn-mega" onclick="generateSchedule()">🚀 توليد الجدول الذكي الآن</button>
+                    <button class="btn-primary" id="btn-export-pdf" style="display: none; font-size: 1.2rem; padding: 15px 30px;" onclick="exportScheduleToPDF()"><i class="fas fa-file-pdf"></i> تصدير كـ PDF</button>
+                    <button class="btn-primary" id="btn-export-excel" style="display: none; font-size: 1.2rem; padding: 15px 30px; background-color: #10b981;" onclick="exportScheduleToExcel()"><i class="fas fa-file-excel"></i> تصدير كـ Excel</button>
+                </div>
+                
+                <div class="glass-panel" style="padding: 10px 20px; display: flex; align-items: center; gap: 10px; min-width: 300px; width: max-content;">
+                    <label style="color: white; font-weight: bold;"><i class="fas fa-history"></i> السجل:</label>
+                    <select id="schedule-history-filter" onchange="loadSavedSchedule()" style="flex: 1; padding: 8px 15px; border-radius: 8px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); outline: none;">
+                        <option value="">-- الجداول المحفوظة --</option>
+                    </select>
+                </div>
+                
+                <p id="loading-msg" style="display: none; color: #feca57;">جاري المعالجة... يرجى الانتظار</p>
+            </div>
+            
+            <div class="schedule-controls glass-panel" style="display: none; margin-top: 20px; padding: 15px; display: flex; gap: 20px; justify-content: center; align-items: center;" id="schedule-controls">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label style="color: white; font-weight: bold;"><i class="fas fa-eye"></i> طريقة العرض:</label>
+                    <select id="schedule-view-type" onchange="switchScheduleView()" style="padding: 8px 15px; border-radius: 8px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); outline: none;">
+                        <option value="classes">جداول الفصول (الجدول العام)</option>
+                        <option value="teachers">جداول المعلمين</option>
+                    </select>
+                </div>
+                
+                <div id="teacher-filter-container" style="display: none; align-items: center; gap: 10px;">
+                    <label style="color: white;"><i class="fas fa-filter"></i> تصفية بالمعلم:</label>
+                    <select id="schedule-teacher-filter" onchange="renderTeachersSchedule()" style="padding: 8px 15px; border-radius: 8px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); outline: none;">
+                        <option value="all">-- عرض جميع المعلمين --</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- حاوية جداول الفصول -->
+            <div id="classes-schedule-container" style="display: none; margin-top: 20px;">
+                <!-- سيتم تعبئة جداول الفصول هنا بواسطة JS -->
+            </div>
+
+            <!-- حاوية جداول المعلمين -->
+            <div id="teachers-schedule-container" style="display: none; margin-top: 20px;">
+                <!-- سيتم تعبئة جداول المعلمين هنا بواسطة JS -->
+        </div>
+            <!-- نهاية work-panels-container -->
+        </div>
+        <!-- نهاية dashboard-main-content -->
+    </main>
+    <!-- نهاية dashboard-app-container -->
+</div>
+
+    <!-- Modal for Teacher Times -->
+    <div class="modal" id="times-modal">
+        <div class="modal-content glass-panel">
+            <h2 id="modal-title">ضبط أوقات المعلم</h2>
+            <p class="modal-subtitle">حدد أيام العطل، والحصص المحظورة التي لا يمكن للمعلم التدريس فيها.</p>
+            
+            <table class="times-table">
+                <thead>
+                    <tr>
+                        <th>اليوم</th>
+                        <th>إجازة كاملة (يوم عطلة)</th>
+                        <th>1</th>
+                        <th>2</th>
+                        <th>3</th>
+                        <th>4</th>
+                        <th>5</th>
+                        <th>6</th>
+                        <th>7</th>
+                    </tr>
+                </thead>
+                <tbody id="times-tbody">
+                    <!-- JS fills this -->
+                </tbody>
+                <tfoot id="times-tfoot">
+                    <!-- JS fills this -->
+                </tfoot>
+            </table>
+            
+            <div class="modal-actions" style="justify-content: space-between; display: flex; width: 100%;">
+                <div>
+                    <button class="btn-danger" onclick="resetTimesUI()">إعادة تعيين (تصفير الكل)</button>
+                </div>
+                <div>
+                    <button class="btn-secondary" onclick="closeModal()">إلغاء الرجوع</button>
+                    <button class="btn-primary" onclick="saveTimes()">حفظ التفضيلات</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Auth (Login / Register) -->
+    <div class="modal" id="auth-modal" style="display: none;">
+        <div class="modal-content glass-panel" style="max-width: 450px; width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="auth-modal-title" style="margin: 0;">تسجيل الدخول</h2>
+                <button onclick="closeAuthModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            
+            <!-- Login Form -->
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">البريد الإلكتروني للمدرسة:</label>
+                    <input type="email" id="login-email" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.4); color: white;" placeholder="school@example.com">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px;">كلمة المرور:</label>
+                    <input type="password" id="login-password" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.4); color: white;">
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; font-weight: bold;"><i class="fas fa-sign-in-alt"></i> دخول المنظومة</button>
+                <button type="button" class="btn-secondary" style="width: 100%; padding: 10px; margin-top: 10px; background: rgba(255,255,255,0.1);" onclick="useLocalMode()"><i class="fas fa-desktop"></i> استخدام النظام محلياً (بدون فايبربيس)</button>
+                <p style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: #aaa;">* إنشاء وتفعيل الحسابات يتم حصراً عن طريق إدارة المنظومة.</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Super Admin (School Management) -->
+    <div class="modal" id="admin-modal" style="display: none;">
+        <div class="modal-content glass-panel" style="max-width: 700px; width: 95%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">
+                <h2 style="margin: 0; color: #8b5cf6;"><i class="fas fa-user-shield"></i> لوحة الإدارة العامة للمدارس (Super Admin)</h2>
+                <button onclick="closeAdminModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+
+            <!-- Create School Section -->
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--glass-border);">
+                <h4 style="margin-top: 0; margin-bottom: 15px; color: #10b981;"><i class="fas fa-plus-circle"></i> إضافة وتأسيس حساب مدرسة جديد:</h4>
+                <form id="admin-create-school-form" onsubmit="handleAdminCreateSchool(event)" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
+                    <div>
+                        <label style="font-size: 0.85rem; display: block; margin-bottom: 4px;">اسم المدرسة:</label>
+                        <input type="text" id="admin-school-name" required placeholder="مدرسة الأمل" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.5); color: white;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.85rem; display: block; margin-bottom: 4px;">البريد الإلكتروني:</label>
+                        <input type="email" id="admin-school-email" required placeholder="school@test.com" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.5); color: white;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.85rem; display: block; margin-bottom: 4px;">كلمة المرور:</label>
+                        <input type="password" id="admin-school-password" minlength="6" required placeholder="******" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.5); color: white;">
+                    </div>
+                    <button type="submit" class="btn-primary" style="padding: 8px 16px; background: #10b981; font-size: 0.9rem;"><i class="fas fa-check"></i> إنشاء الحساب</button>
+                </form>
+            </div>
+
+            <!-- Schools List Section -->
+            <h4 style="margin-bottom: 10px;"><i class="fas fa-list"></i> قائمة المدارس والاشتراكات المسجلة:</h4>
+            <div style="max-height: 300px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: right;">
+                    <thead>
+                        <tr style="background: rgba(255,255,255,0.1);">
+                            <th style="padding: 10px;">المدرسة</th>
+                            <th style="padding: 10px;">البريد الإلكتروني</th>
+                            <th style="padding: 10px;">تاريخ التأسيس</th>
+                            <th style="padding: 10px;">الحالة (الاشتراك)</th>
+                            <th style="padding: 10px;">التحكم</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-schools-list">
+                        <!-- JS Fills this -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

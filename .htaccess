@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 1. توجيه طلبات API إلى api.php
+    RewriteRule ^api/(.*)$ api.php?action=$1 [QSA,L]
+
+    # 2. فتح الصفحة الرئيسية تلقائياً
+    RewriteRule ^$ static/index.html [L]
+
+    # 3. تحميل ملفات التنسيق والجافاسكربت من مجلد static
+    RewriteRule ^css/(.*)$ static/css/$1 [L]
+    RewriteRule ^js/(.*)$ static/js/$1 [L]
+</IfModule>

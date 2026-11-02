@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // قواعد حماية البيانات لمشروع جدول المواعيد المدرسية (schedules-82639)
+
+    // دالة للتحقق من أن المستخدم مسجل دخول
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // دالة للتحقق من أن المستخدم صاحب الحساب
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // قواعد مجموعة المدارس
+    match /schools/{schoolId} {
+      // القراءة والكتابة مسموحة لصاحب الحساب أو أي مستخدم مسجل الدخول
+      allow read, write: if isAuthenticated();
+
+      // قواعد الجداول التابعة للمدرسة
+      match /schedules/{scheduleId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // قاعدة عامة لكافة المستندات للمستخدمين المسجلين
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
