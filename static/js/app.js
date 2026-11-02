@@ -355,9 +355,73 @@ async function handleRegister(e) {
 }
 
 async function handleLogout() {
-    if (window.auth) {
-        await window.auth.signOut();
-        showSuccess('تم تسجيل الخروج بنجاح.');
+    const isLoggedIn = (currentUser !== null) || (window.auth && window.auth.currentUser !== null) || (document.getElementById('logged-in-view') && document.getElementById('logged-in-view').style.display !== 'none');
+    
+    if (!isLoggedIn) {
+        const res = await Swal.fire({
+            title: 'غير مسجل الدخول',
+            text: 'أنت غير مسجل الدخول حالياً. هل ترغب في تسجيل الدخول للمنظومة؟',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'نعم، تسجيل الدخول',
+            cancelButtonText: 'إلغاء',
+            background: '#1e293b',
+            color: '#ffffff'
+        });
+        if (res.isConfirmed) {
+            openAuthModal('login');
+        }
+        return;
+    }
+
+    const result = await Swal.fire({
+        title: 'تسجيل الخروج',
+        text: 'هل أنت متأكد من رغبتك في تسجيل الخروج من المنظومة؟',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'نعم، تسجيل الخروج',
+        cancelButtonText: 'إلغاء',
+        background: '#1e293b',
+        color: '#ffffff'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            if (window.auth && window.auth.currentUser) {
+                await window.auth.signOut();
+            }
+        } catch (e) {
+            console.warn("Sign out error:", e);
+        }
+
+        currentUser = null;
+        isSuperAdmin = false;
+        appData = null;
+        currentScheduleData = [];
+
+        if (document.getElementById('logged-in-view')) document.getElementById('logged-in-view').style.display = 'none';
+        if (document.getElementById('logged-out-view')) document.getElementById('logged-out-view').style.display = 'flex';
+        if (document.getElementById('admin-switch-buttons')) document.getElementById('admin-switch-buttons').style.display = 'none';
+        if (document.getElementById('current-school-name')) document.getElementById('current-school-name').textContent = 'زائر المنظومة';
+        if (document.getElementById('current-school-role')) document.getElementById('current-school-role').textContent = 'غير مسجل';
+
+        switchMainView('scheduler');
+
+        await Swal.fire({
+            title: 'تم تسجيل الخروج',
+            text: 'تم تسجيل الخروج من المنظومة بنجاح.',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false,
+            background: '#1e293b',
+            color: '#ffffff'
+        });
+
+        window.location.reload();
     }
 }
 

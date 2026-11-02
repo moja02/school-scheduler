@@ -90,7 +90,7 @@
                         <span class="user-display-name" id="current-school-name">مدرستي</span>
                         <span class="user-display-role" id="current-school-role">لوحة التحكم</span>
                     </div>
-                    <button class="btn-sidebar-logout" onclick="handleLogout()" title="تسجيل الخروج">
+                    <button class="btn-sidebar-logout" id="btn-sidebar-logout" onclick="handleLogout()" title="تسجيل الخروج">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </div>
@@ -123,6 +123,9 @@
                                     <i class="fas fa-calendar-alt"></i> لوحة الجدولة الذكية
                                 </button>
                             </div>
+                            <button class="btn-danger btn-sm" onclick="handleLogout()" style="display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 0.88rem; font-weight: bold;">
+                                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+                            </button>
                         </div>
                     </div>
 
