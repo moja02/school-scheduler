@@ -137,12 +137,17 @@ function setupTabs() {
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(t => t.classList.remove('active'));
-            contents.forEach(c => c.classList.remove('active'));
+            contents.forEach(c => {
+                c.classList.remove('active');
+                c.style.display = '';
+            });
             
             tab.classList.add('active');
             const targetId = tab.dataset.target;
             const targetContent = document.getElementById(targetId);
-            if (targetContent) targetContent.classList.add('active');
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
             
             if (pageTitle) {
                 const navTextEl = tab.querySelector('.nav-text');
@@ -430,14 +435,23 @@ function switchMainView(viewName) {
     const dashboardWrapper = document.getElementById('scheduler-dashboard-wrapper');
     const navAdmin = document.getElementById('nav-btn-admin');
     const navScheduler = document.getElementById('nav-btn-scheduler');
-    const activeTabContent = document.querySelector('.tab-content.active') || document.getElementById('settings-tab');
     const pageTitle = document.getElementById('page-main-title');
     const pageDesc = document.getElementById('page-main-desc');
+    
+    const descriptions = {
+        'settings-tab': 'حدد المراحل الدراسية المتوفرة في مدرستك فقط',
+        'grades-tab': 'إدارة صفوف وشعب المدرسة وتعيين الترتيب المكاني',
+        'subjects-tab': 'تحديد المواد الدراسية المعتمدة لكل مرحلة',
+        'sessions-tab': 'توزيع نصاب الحصص الأسبوعية لكل مادة',
+        'teachers-tab': 'تسجيل المعلمين وضبط حصصهم وأيام عطلهم المحظورة',
+        'reqs-tab': 'إسناد المعلمين للفصول وتوزيع الحصص الأسبوعية',
+        'teacher-tasks-tab': 'مراجعة نصاب ومهام كل معلم في المدرسة',
+        'schedule-tab': 'توليد الجدول الأسبوعي الذكي وحل كافة التعارضات'
+    };
     
     if (viewName === 'admin') {
         if (adminSection) adminSection.style.display = 'block';
         if (dashboardWrapper) dashboardWrapper.style.display = 'none';
-        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
         
         if (navAdmin) { navAdmin.className = 'btn-action-purple'; }
         if (navScheduler) { navScheduler.className = 'btn-secondary'; }
@@ -449,16 +463,33 @@ function switchMainView(viewName) {
     } else {
         if (adminSection) adminSection.style.display = 'none';
         if (dashboardWrapper) dashboardWrapper.style.display = 'block';
-        document.querySelectorAll('.tab-content').forEach(el => el.style.display = '');
-        if (activeTabContent) activeTabContent.style.display = 'block';
+        
+        // Find which tab button is active or default to first
+        let activeTab = document.querySelector('.sidebar-menu .tab-btn.active');
+        if (!activeTab) {
+            activeTab = document.querySelector('.sidebar-menu .tab-btn[data-target="settings-tab"]');
+            if (activeTab) activeTab.classList.add('active');
+        }
+        const targetId = activeTab ? activeTab.dataset.target : 'settings-tab';
+        
+        document.querySelectorAll('.tab-content').forEach(el => {
+            el.style.display = '';
+            if (el.id === targetId) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
+            }
+        });
         
         if (navAdmin) { navAdmin.className = 'btn-secondary'; }
         if (navScheduler) { navScheduler.className = 'btn-action-dark'; }
         
-        const activeTab = document.querySelector('.sidebar-menu .tab-btn.active');
         if (activeTab && pageTitle) {
             const navTextEl = activeTab.querySelector('.nav-text');
             pageTitle.textContent = navTextEl ? navTextEl.textContent.trim() : activeTab.textContent.trim();
+        }
+        if (pageDesc && descriptions[targetId]) {
+            pageDesc.textContent = descriptions[targetId];
         }
     }
 }
