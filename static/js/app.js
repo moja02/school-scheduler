@@ -138,6 +138,16 @@ function setupTabs() {
     
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
+            const dashboardWrapper = document.getElementById('scheduler-dashboard-wrapper');
+            const adminSection = document.getElementById('admin-page-section');
+            if (dashboardWrapper) dashboardWrapper.style.display = 'block';
+            if (adminSection) adminSection.style.display = 'none';
+            
+            const navAdmin = document.getElementById('nav-btn-admin');
+            const navScheduler = document.getElementById('nav-btn-scheduler');
+            if (navAdmin) navAdmin.className = 'btn-secondary';
+            if (navScheduler) navScheduler.className = 'btn-action-dark';
+            
             tabs.forEach(t => t.classList.remove('active'));
             contents.forEach(c => {
                 c.classList.remove('active');
@@ -195,18 +205,41 @@ async function loadData() {
         showWarning("حساب هذه المدرسة موقوف حالياً من الإدارة. يرجى التواصل مع الدعم الفني للتفعيل.");
     }
     
-    if (!appData.school_structure) appData.school_structure = {};
+    if (!appData.school_structure || !appData.school_structure.primary) {
+        appData.school_structure = {
+            primary: [
+                {name: "الصف الأول", active: true, sections: ["1", "2"]},
+                {name: "الصف الثاني", active: true, sections: ["1", "2"]},
+                {name: "الصف الثالث", active: true, sections: ["1", "2"]},
+                {name: "الصف الرابع", active: true, sections: ["1", "2"]},
+                {name: "الصف الخامس", active: true, sections: ["1", "2"]},
+                {name: "الصف السادس", active: true, sections: ["1", "2"]}
+            ],
+            preparatory: [
+                {name: "الصف الأول إعدادي", active: true, sections: ["1", "2"]},
+                {name: "الصف الثاني إعدادي", active: true, sections: ["1", "2"]},
+                {name: "الصف الثالث إعدادي", active: true, sections: ["1", "2"]}
+            ],
+            secondary: [
+                {name: "الصف الأول ثانوي", active: true, sections: ["1", "2"]},
+                {name: "الصف الثاني ثانوي - علمي", active: true, sections: ["1"]},
+                {name: "الصف الثاني ثانوي - أدبي", active: true, sections: ["1"]},
+                {name: "الصف الثالث ثانوي - علمي", active: true, sections: ["1"]},
+                {name: "الصف الثالث ثانوي - أدبي", active: true, sections: ["1"]}
+            ]
+        };
+    }
     if (!appData.teachers) appData.teachers = [];
     if (!appData.requirements) appData.requirements = [];
     if (!appData.grades) appData.grades = [];
     
-    renderStructure();
-    renderGrades();
-    renderTeachers();
-    renderRequirementsTab();
-    renderTeacherTasksFilter();
-    renderSubjectSessions();
-    loadSchoolLogo();
+    try { renderStructure(); } catch(e) { console.error("renderStructure error", e); }
+    try { renderGrades(); } catch(e) { console.error("renderGrades error", e); }
+    try { renderTeachers(); } catch(e) { console.error("renderTeachers error", e); }
+    try { renderRequirementsTab(); } catch(e) { console.error("renderRequirementsTab error", e); }
+    try { renderTeacherTasksFilter(); } catch(e) { console.error("renderTeacherTasksFilter error", e); }
+    try { renderSubjectSessions(); } catch(e) { console.error("renderSubjectSessions error", e); }
+    try { loadSchoolLogo(); } catch(e) { console.error("loadSchoolLogo error", e); }
 }
 
 async function saveData() {
@@ -808,31 +841,33 @@ async function toggleSchoolStatus(schoolId, currentActiveStatus) {
 }
 
 function renderStructure() {
-    if (!appData.school_structure) return;
+    if (!appData || !appData.school_structure) return;
     
     const stages = [
-        { id: 'primary-switches', data: appData.school_structure.primary, key: 'primary' },
-        { id: 'prep-switches', data: appData.school_structure.preparatory, key: 'preparatory' },
-        { id: 'sec-switches', data: appData.school_structure.secondary, key: 'secondary' }
+        { id: 'primary-switches', data: appData.school_structure.primary || [], key: 'primary' },
+        { id: 'prep-switches', data: appData.school_structure.preparatory || [], key: 'preparatory' },
+        { id: 'sec-switches', data: appData.school_structure.secondary || [], key: 'secondary' }
     ];
     
     stages.forEach(stage => {
         const container = document.getElementById(stage.id);
-        if(!container) return;
+        if (!container) return;
         container.innerHTML = '';
         
-        stage.data.forEach((grade, index) => {
-            const div = document.createElement('div');
-            div.className = 'structure-item';
-            div.innerHTML = `
-                <label class="toggle-switch">
-                    <input type="checkbox" id="struct-${stage.key}-${index}" ${grade.active ? 'checked' : ''}>
-                    <span class="slider"></span>
-                </label>
-                <span>${grade.name}</span>
-            `;
-            container.appendChild(div);
-        });
+        if (Array.isArray(stage.data)) {
+            stage.data.forEach((grade, index) => {
+                const div = document.createElement('div');
+                div.className = 'structure-item';
+                div.innerHTML = `
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="struct-${stage.key}-${index}" ${grade.active ? 'checked' : ''}>
+                        <span class="slider"></span>
+                    </label>
+                    <span>${grade.name}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
     });
 }
 
