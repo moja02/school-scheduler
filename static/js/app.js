@@ -75,7 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const roleEl = document.getElementById('current-school-role');
                 if (roleEl) roleEl.textContent = 'غير مسجل';
                 loadSchoolLogo();
-                openAuthModal('login');
+                switchMainView('scheduler');
+                await loadData();
+                await loadSchedulesList();
             }
         });
     } else {
