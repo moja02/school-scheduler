@@ -481,7 +481,12 @@
                     <input type="email" id="login-email" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.4); color: white;" placeholder="school@example.com">
                 </div>
                 <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px;">كلمة المرور:</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label style="margin: 0; font-size: 0.9rem;">كلمة المرور:</label>
+                        <a href="javascript:void(0)" onclick="handleForgotPassword()" style="color: #60a5fa; font-size: 0.85rem; text-decoration: none; font-weight: 500;">
+                            <i class="fas fa-key"></i> نسيت كلمة المرور؟
+                        </a>
+                    </div>
                     <input type="password" id="login-password" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.4); color: white;">
                 </div>
                 <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; font-weight: bold;"><i class="fas fa-sign-in-alt"></i> دخول المنظومة</button>

@@ -333,6 +333,61 @@ async function handleLogin(e) {
     }
 }
 
+async function handleForgotPassword() {
+    if (!window.auth) {
+        showError("لم يتم تهيئة نظام الحسابات (Firebase) بشكل صحيح.");
+        return;
+    }
+    
+    const emailInput = document.getElementById('login-email');
+    const defaultEmail = emailInput ? emailInput.value.trim() : '';
+    
+    const { value: email } = await Swal.fire({
+        title: 'استعادة كلمة المرور',
+        text: 'أدخل البريد الإلكتروني الخاص بحساب مدرستك لإرسال رابط إعادة تعيين كلمة المرور:',
+        input: 'email',
+        inputValue: defaultEmail,
+        inputPlaceholder: 'school@example.com',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-paper-plane"></i> إرسال الرابط',
+        cancelButtonText: 'إلغاء',
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#64748b',
+        background: '#1e293b',
+        color: '#ffffff',
+        inputValidator: (value) => {
+            if (!value || !value.trim()) {
+                return 'يرجى كتابة البريد الإلكتروني أولاً!';
+            }
+        }
+    });
+
+    if (email) {
+        const cleanEmail = email.trim();
+        try {
+            await window.auth.sendPasswordResetEmail(cleanEmail);
+            Swal.fire({
+                title: 'تم إرسال الرابط بنجاح! 📩',
+                html: `تم إرسال رابط إعادة تعيين كلمة المرور إلى البريد:<br><strong style="color: #60a5fa;">${cleanEmail}</strong><br><br><span style="font-size: 0.9rem; color: #cbd5e1;">يرجى مراجعة صندوق الوارد (أو مجلد Spam / الرسائل غير المرغوب فيها) والضغط على الرابط لتعيين كلمة مرور جديدة.</span>`,
+                icon: 'success',
+                confirmButtonColor: '#10b981',
+                confirmButtonText: 'حسناً',
+                background: '#1e293b',
+                color: '#ffffff'
+            });
+        } catch (err) {
+            console.error("Password reset error:", err);
+            let errMsg = err.message || "حدث خطأ أثناء إرسال الرابط.";
+            if (err.code === 'auth/user-not-found' || errMsg.includes('user-not-found')) {
+                errMsg = "هذا البريد الإلكتروني غير مسجل في المنظومة. يرجى التأكد من كتابة البريد بشكل صحيح.";
+            } else if (err.code === 'auth/invalid-email' || errMsg.includes('invalid-email')) {
+                errMsg = "صيغة البريد الإلكتروني المدخل غير صحيحة.";
+            }
+            showError(errMsg);
+        }
+    }
+}
+
 async function handleRegister(e) {
     e.preventDefault();
     if (!window.auth || !window.db) {
